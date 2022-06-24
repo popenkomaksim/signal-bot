@@ -126,29 +126,27 @@ class Client extends EventEmitter {
      * @event Client#messagev2
      * @type {Message2}
      */
-     this._busInterface.on("MessageReceived", (timestamp, authorID, groupID, content, attachments, ...rest) => {
-   
-      if (this.settings.debug) {
-        debugLog(`MessageReceived: ${timestamp}, ${authorID}, ${groupID?.toString?.("base64")}, ${content}, ${JSON.stringify(attachments)}`);
-      }
-      const conversationID = groupID.length ? groupID.toString("base64") : authorID;
-      let conversation = this.conversations.cache.get(conversationID);
-      if (!conversation) {
-        conversation = this.conversations.from(conversationID);
-        this.conversations._addToCache(conversation);
-      }
-      const message = new Message({
-        client: this,
-        // D-Bus lib returns BigInt, which is unnecessary and not compatible with Date()
-        timestamp: Number(timestamp),
-        authorID,
-        conversation,
-        attachments,
-        content
-      });
-
-      this.emit("message", message);
-    });
+     this._busInterface.on("MessageReceivedV2", (timestamp, sender, groupID, message, extras) => {
+        const conversationID = groupID.length ? groupID.toString("base64") : sender;
+        console.log(conversationID)
+        let conversation = this.conversations.cache.get(conversationID);
+        if (!conversation) {
+          conversation = this.conversations.from(conversationID);
+          this.conversations._addToCache(conversation);
+        }
+  
+        const messageV2 = new MessageV2({
+          client: this,
+          // D-Bus lib returns BigInt, which is unnecessary and not compatible with Date()
+          timestamp: Number(timestamp),
+          sender,
+          conversation,
+          extras,
+          message
+        });
+  
+        this.emit("messagev2", messageV2);
+    })
 
     /**
      * Message event.
