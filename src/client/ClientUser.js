@@ -29,7 +29,7 @@ class ClientUser {
    * @return {Promise<boolean>}
    */
   async getRegistrationStatus() {
-    return await this.client._busInterface.isRegistered();
+    return await this.client._busInterface.isRegistered([this.client.settings.phoneNumber]);
   }
 }
 
