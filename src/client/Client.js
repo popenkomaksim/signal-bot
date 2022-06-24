@@ -117,6 +117,39 @@ class Client extends EventEmitter {
       this.emit("error", e);
     });
 
+
+    
+    /**
+     * Message event.
+     * Fires when a message v2 is received. V2 messages have a number of improvements
+     * including extensible extras object that stores stickers, shared contacts etc.
+     * @event Client#messagev2
+     * @type {Message2}
+     */
+     this._busInterface.on("MessageReceived", (timestamp, authorID, groupID, content, attachments, ...rest) => {
+   
+      if (this.settings.debug) {
+        debugLog(`MessageReceived: ${timestamp}, ${authorID}, ${groupID?.toString?.("base64")}, ${content}, ${JSON.stringify(attachments)}`);
+      }
+      const conversationID = groupID.length ? groupID.toString("base64") : authorID;
+      let conversation = this.conversations.cache.get(conversationID);
+      if (!conversation) {
+        conversation = this.conversations.from(conversationID);
+        this.conversations._addToCache(conversation);
+      }
+      const message = new Message({
+        client: this,
+        // D-Bus lib returns BigInt, which is unnecessary and not compatible with Date()
+        timestamp: Number(timestamp),
+        authorID,
+        conversation,
+        attachments,
+        content
+      });
+
+      this.emit("message", message);
+    });
+
     /**
      * Message event.
      * Fires when a message is received.
