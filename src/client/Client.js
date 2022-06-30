@@ -9,6 +9,7 @@ const {debugLog, deepMerge} = require("../util");
 const ClientUser = require("./ClientUser.js");
 const ConversationManager = require("../managers/ConversationManager.js");
 const Message = require("../structures/Message.js");
+const MessageV2 = require("../structures/MessageV2.js");
 
 /**
  * Signal bot client class.
