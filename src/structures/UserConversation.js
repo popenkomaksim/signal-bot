@@ -32,6 +32,14 @@ class UserConversation extends BaseConversation {
   }
 
   /**
+   * Send typing message to trigger a typing indicator for the recipient. Indicator will be shown for 15seconds unless a typing STOP message is sent first.
+   * @param {boolean} [stop] - if true stops typing
+   */
+  async sendTyping(stop = false) {
+    await this.client._busInterface.sendTyping(this.id, stop);
+  }
+
+  /**
    * Reset the session keys for the conversation.
    * This method should rarely need to be used.
    * @return {Promise<undefined>}
