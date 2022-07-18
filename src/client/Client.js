@@ -4,8 +4,8 @@ const EventEmitter = require("events");
 
 const dbus = require("dbus-next");
 
-const {defaultClientSettings} = require("../constants");
-const {debugLog, deepMerge} = require("../util");
+const { defaultClientSettings } = require("../constants");
+const { debugLog, deepMerge } = require("../util");
 const ClientUser = require("./ClientUser.js");
 const ConversationManager = require("../managers/ConversationManager.js");
 const Message = require("../structures/Message.js");
@@ -36,10 +36,10 @@ class Client extends EventEmitter {
     if (!["system", "session"].includes(this.settings.dbus?.type)) {
       throw new TypeError(`Bad Client settings.dbus.destination: ${this.settings.dbus?.destination}`);
     }
-    if(this.settings.phoneNumber == null){
+    if (this.settings.phoneNumber == null) {
       throw new TypeError(`Bad client-phone-number: ${this.settings.phoneNumber}, required for signal-cli 0.8.4+`);
     }
-    if(typeof this.settings.phoneNumber === "string" && this.settings.phoneNumber.startsWith("+")){
+    if (typeof this.settings.phoneNumber === "string" && this.settings.phoneNumber.startsWith("+")) {
       throw new TypeError(`Bad client-phone-number: remove + at the beginning`);
     }
     this._user = new ClientUser({
@@ -53,9 +53,9 @@ class Client extends EventEmitter {
    * @type {ClientUser}
    * @readonly
    */
-   get user() {
-     return this._user;
-   }
+  get user() {
+    return this._user;
+  }
 
   /**
    * The ConversationManager belonging to this Client.
@@ -81,7 +81,7 @@ class Client extends EventEmitter {
       this.settings.dbus.destination,
       `/org/asamk/Signal/_${this.settings.phoneNumber}`
     );
-    
+
     this._busInterface = interfaces.getInterface("org.asamk.Signal");
 
     /**
@@ -95,13 +95,19 @@ class Client extends EventEmitter {
       try {
         await this.user.getRegistrationStatus();
       } catch (e) {
-        if (this.settings.debug) {
-          debugLog("Disconnect");
+        if (e.reply?.body[0]?.includes("org.whispersystems.signalservice.internal.contacts.crypto.UnauthenticatedQuoteException")) {
+          if (this.settings.debug) {
+            debugLog("Received UnauthenticatedQuoteException error. Ignoring");
+          }
+        } else {
+          if (this.settings.debug) {
+            debugLog("Disconnect");
+          }
+          clearInterval(this._connectionCheckInterval);
+          this._bus.disconnect();
+          this._busInterface.removeAllListeners();
+          this.emit("disconnect");
         }
-        clearInterval(this._connectionCheckInterval);
-        this._bus.disconnect();
-        this._busInterface.removeAllListeners();
-        this.emit("disconnect");
       }
     }, this.settings.dbus.connectionCheckInterval);
 
@@ -119,7 +125,7 @@ class Client extends EventEmitter {
     });
 
 
-    
+
     /**
      * Message event.
      * Fires when a message v2 is received. V2 messages have a number of improvements
@@ -127,26 +133,26 @@ class Client extends EventEmitter {
      * @event Client#messagev2
      * @type {Message2}
      */
-     this._busInterface.on("MessageReceivedV2", (timestamp, sender, groupID, message, extras) => {
-        const conversationID = groupID.length ? groupID.toString("base64") : sender;
-        console.log(conversationID)
-        let conversation = this.conversations.cache.get(conversationID);
-        if (!conversation) {
-          conversation = this.conversations.from(conversationID);
-          this.conversations._addToCache(conversation);
-        }
-  
-        const messageV2 = new MessageV2({
-          client: this,
-          // D-Bus lib returns BigInt, which is unnecessary and not compatible with Date()
-          timestamp: Number(timestamp),
-          sender,
-          conversation,
-          extras,
-          message
-        });
-  
-        this.emit("messagev2", messageV2);
+    this._busInterface.on("MessageReceivedV2", (timestamp, sender, groupID, message, extras) => {
+      const conversationID = groupID.length ? groupID.toString("base64") : sender;
+      console.log(conversationID)
+      let conversation = this.conversations.cache.get(conversationID);
+      if (!conversation) {
+        conversation = this.conversations.from(conversationID);
+        this.conversations._addToCache(conversation);
+      }
+
+      const messageV2 = new MessageV2({
+        client: this,
+        // D-Bus lib returns BigInt, which is unnecessary and not compatible with Date()
+        timestamp: Number(timestamp),
+        sender,
+        conversation,
+        extras,
+        message
+      });
+
+      this.emit("messagev2", messageV2);
     })
 
     /**
