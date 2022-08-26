@@ -84,7 +84,10 @@ class ConversationManager extends BaseManager {
   static _idToConversationType(id) {
     // Encoded group IDs should be over 40 characters.
     // Hopefully usernames will have a max limit of no more than 32.
-    return id.length > 32 ? "group" : "user";
+    // 
+    // Temporary disable
+    // return id.length > 32 ? "group" : "user";
+    return "user";
   }
 }
 
